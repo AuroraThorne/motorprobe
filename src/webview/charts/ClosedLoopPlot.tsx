@@ -3,6 +3,7 @@ import uPlot from 'uplot';
 import { LoopConfig, LoopKind, RunAnalysisPayload } from '../../shared/protocol';
 import { ColumnRingBuffer } from '../shared/ringBuffer';
 import { buildLoopReferencePreview } from './loopPreview';
+import { plotValues } from './plotValues';
 import {
   attachPlotInteractions,
   ChartRowSplitter,
@@ -24,8 +25,9 @@ interface ClosedLoopPlotProps {
   equalizeToken?: number;
 }
 
-type PlotData = [number[], number[], number[]];
-type LoopPlotData = [PlotData, PlotData, [number[], number[], number[], number[]]];
+type PlotColumn = Array<number | null>;
+type PlotData = [number[], PlotColumn, PlotColumn];
+type LoopPlotData = [PlotData, PlotData, [number[], PlotColumn, PlotColumn, PlotColumn]];
 
 function sameLoopConfig(a: LoopConfig | undefined, b: LoopConfig | null): boolean {
   return Boolean(a && b && JSON.stringify(a) === JSON.stringify(b));
@@ -96,16 +98,15 @@ export const ClosedLoopPlot: React.FC<ClosedLoopPlotProps> = ({
   const sourceT = displayed?.t ?? generatedPreview.t;
   const sourceRef = displayed?.ref ?? generatedPreview.ref;
   const measured = displayed ? (live?.measured ?? (loopKind === 'vel' ? displayed.vel : displayed.pos)) : [];
-  const unavailable = (n: number): number[] => new Array<number>(n).fill(Number.NaN);
 
   const data = useMemo<LoopPlotData>(() => {
     const n = sourceT.length;
     if (n === 0) return empty3();
-    const noSignal = unavailable(n);
+    const noSignal = new Array<null>(n).fill(null);
     return [
-      [sourceT, sourceRef, displayed ? measured : noSignal],
-      [sourceT, displayed ? displayed.u : noSignal, displayed ? displayed.fbOut : noSignal],
-      [sourceT, displayed ? displayed.pOut : noSignal, displayed ? displayed.iOut : noSignal, displayed ? displayed.dOut : noSignal],
+      [sourceT, plotValues(sourceRef), displayed ? plotValues(measured) : noSignal],
+      [sourceT, displayed ? plotValues(displayed.u) : noSignal, displayed ? plotValues(displayed.fbOut) : noSignal],
+      [sourceT, displayed ? plotValues(displayed.pOut) : noSignal, displayed ? plotValues(displayed.iOut) : noSignal, displayed ? plotValues(displayed.dOut) : noSignal],
     ];
   }, [sourceT, sourceRef, measured, displayed]);
   const dataRef = useRef(data);
@@ -250,6 +251,9 @@ export const ClosedLoopPlot: React.FC<ClosedLoopPlotProps> = ({
           )}
           <div className="uplot-slot" style={{ flexGrow: weights[idx] ?? 1, flexShrink: 1, flexBasis: 0 }}>
             <div ref={hostRefs[idx]} className="uplot-canvas-host" />
+            {idx === 0 && !displayed && preview && (
+              <div className="loop-preview-label">目标轨迹预览 · 修改左侧参数即时更新</div>
+            )}
             {idx > 0 && !hasOutputRecord && (
               <div className="loop-chart-hint">
                 {running ? '等待反馈样本…' : '开始闭环后显示实时输出曲线'}

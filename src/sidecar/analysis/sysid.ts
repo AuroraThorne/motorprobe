@@ -112,6 +112,7 @@ export function bodeStepsine(run: ExciteRun): BodeData | null {
       }
     }
     if (tu.length < 8) continue;
+    if (tu[tu.length - 1] - tu[0] < Math.min(1 / f, (b - settle) * 0.9)) continue;
     const [U, r2u] = sineFit(tu, uu, f);
     const [V, r2v] = sineFit(tu, vu, f);
     const [Pp, r2p] = sineFit(tu, pu, f);
@@ -128,7 +129,7 @@ export function bodeStepsine(run: ExciteRun): BodeData | null {
       Math.min(r2u, r2p),
     ]);
   }
-  if (rows.length < 2) return null;
+  if (rows.length < 1) return null;
   return {
     f: rows.map((r) => r[0]),
     magV: rows.map((r) => r[1]),

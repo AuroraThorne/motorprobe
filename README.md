@@ -4,7 +4,9 @@
 
 ## 安装与开始使用
 
-从本地构建生成的 `artifacts/motorprobe-win32-x64-0.1.0.vsix` 安装：在 VS Code 命令面板执行“扩展：从 VSIX 安装”，选择文件并按提示重新加载窗口。Linux 使用对应平台安装包。
+[下载 Windows x64 安装包](https://github.com/AuroraThorne/motorprobe/raw/refs/heads/main/motorprobe-win32-x64-0.1.0.vsix)。仓库根目录也包含 `motorprobe-win32-x64-0.1.0.vsix`，克隆或下载项目后可直接安装。
+
+在 VS Code 命令面板执行“扩展：从 VSIX 安装”，选择文件并按提示重新加载窗口。Linux 使用对应平台构建的安装包。
 
 打开左侧 MotorProbe，选择总线和通道后点击“连接”。也可以执行命令 `MotorProbe: 连接演示台并打开工作台`，无需硬件体验。插件标识为 `Aurora.motorprobe`；安装包或源码更新后，需要重新安装才能更新已安装的插件。
 
@@ -47,6 +49,6 @@ npm run build
 
 按 F5 启动扩展开发窗口。执行 `npm run package:win32-x64` 或 `npm run package:linux-x64` 打包，结果保存在 `artifacts/`。
 
-目录职责、调试和打包说明见 [开发指南](docs/development.md)，提交约定见 [CONTRIBUTING.md](CONTRIBUTING.md)。厂家资料纳入版本管理，依赖、构建结果、安装包、测量数据和日志不提交。
+目录职责、调试和打包说明见 [开发指南](docs/development.md)，提交约定见 [CONTRIBUTING.md](CONTRIBUTING.md)。厂家资料与根目录的 Windows 安装包纳入版本管理，依赖、其他构建产物、测量数据和日志不提交。
 
 项目采用 [MIT 许可证](LICENSE)；厂家资料版权归原权利人。问题与建议请提交到 [GitHub Issues](https://github.com/AuroraThorne/motorprobe/issues)。

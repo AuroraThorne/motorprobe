@@ -155,8 +155,10 @@ describe('Engine integration with 2 kHz DemoBus', () => {
 
   it('records non-negative time and usable Bode points for the 5 s 1–30 Hz sweep shown in the UI', async () => {
     let result: Extract<EngineEvent, { type: 'runAnalysis' }>['payload'] | null = null;
+    const progress: Extract<EngineEvent, { type: 'runAnalysis' }>['payload'][] = [];
     const engine = new Engine((event) => {
       if (event.type === 'runAnalysis' && event.payload.done) result = event.payload;
+      if (event.type === 'runAnalysis' && !event.payload.done) progress.push(event.payload);
     });
     const bus = new DemoBus();
     const cfg: ExciteConfig = {
@@ -178,6 +180,11 @@ describe('Engine integration with 2 kHz DemoBus', () => {
       expect(result!.record.t.every((time) => time >= 0)).toBe(true);
       expect(result!.record.u.length).toBeGreaterThan(100);
       expect(result!.record.vel.length).toBe(result!.record.u.length);
+      expect(progress.some((payload) => (payload.bode?.f.length ?? 0) >= 3)).toBe(true);
+      expect(progress.filter((payload) => payload.record.t.length > 0).length).toBeGreaterThan(1);
+      expect(progress.every((payload) => !payload.model && !payload.predicted && !payload.suggestion)).toBe(true);
+      expect(result!.model).not.toBeNull();
+      expect(result!.predicted!.f.length).toBeGreaterThan(1);
     } finally {
       engine.shutdown();
     }

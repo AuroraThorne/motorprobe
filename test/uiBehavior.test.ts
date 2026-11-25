@@ -4,8 +4,19 @@ import { formatAxisTick } from '../src/webview/charts/chartInteractions';
 import { computeYRange } from '../src/webview/charts/RealtimePlot';
 import { resolveSingleNotice } from '../src/webview/shared/clientStore';
 import { nonNegativeTimeRange } from '../src/webview/charts/chartInteractions';
+import { formatFrequencyTick, plotValues } from '../src/webview/charts/plotValues';
 
 describe('UI Notice Single-Slot & I18N Behavior', () => {
+  it('skips uPlot logarithmic minor-tick placeholders without aborting Bode rendering', () => {
+    expect([0.1, null, 1, undefined, 10, 100].map(formatFrequencyTick)).toEqual(['0.1', '', '1', '', '10', '100']);
+    expect([Number.NaN, Infinity, 0, -1].map(formatFrequencyTick)).toEqual(['', '', '', '']);
+  });
+
+  it('keeps unavailable feedback as uPlot gaps so it cannot poison the reference auto-range', () => {
+    expect(plotValues([Number.NaN, undefined, null, Infinity, -Infinity, 0, 5, -8])).toEqual([null, null, null, null, null, 0, 5, -8]);
+    expect(plotValues(new Float64Array([2, Number.NaN]))).toEqual([2, null]);
+  });
+
   it('uses 波形图 without emoji and labels E-Stop as zero-torque stop', () => {
     expect(tr('zh', 'sb.openScope')).toBe('波形图');
     expect(tr('en', 'sb.openScope')).toBe('Waveform');

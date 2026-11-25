@@ -1,5 +1,5 @@
 import { execFileSync } from 'child_process';
-import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmdirSync, unlinkSync, writeFileSync } from 'fs';
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmdirSync, unlinkSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
@@ -53,6 +53,9 @@ try {
   execFileSync(process.execPath, [vsceCli, 'package', '--target', target, '--ignoreFile', ignorePath, '--out', outputPath, '--githubBranch', 'main'], {
     stdio: 'inherit',
   });
+  if (target === 'win32-x64') {
+    copyFileSync(outputPath, join(ROOT, `${manifest.name}-${target}-${manifest.version}.vsix`));
+  }
 } finally {
   try { unlinkSync(ignorePath); } catch (error) { if (error.code !== 'ENOENT') throw error; }
   rmdirSync(ignoreDir);

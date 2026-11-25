@@ -18,7 +18,7 @@
 
 - 新增驱动或控制行为时，同时补充 DemoBus 覆盖和协议/安全回归测试。
 - 面向用户的项目名统一为 MotorProbe，VS Code Marketplace `publisher` 使用 Aurora；仓库远端地址对应真实 GitHub 仓库，只有用户明确迁移仓库时才更新。
-- 完成后运行 `npm run check`、`npm test` 和 `npm run build`；不提交构建产物、缓存、CSV 或日志。
+- 完成后运行 `npm run check`、`npm test` 和 `npm run build`；不提交缓存、CSV、日志和常规构建产物。用户要求根目录的 `motorprobe-win32-x64-0.1.0.vsix` 纳入仓库，方便直接下载安装；修改插件后同步重新打包。
 - 仓库根目录是包含 `package.json` 的本层目录；开发流程与目录职责见 `docs/development.md`。
 - `artifacts/` 保存本地 VSIX，`dist/` 保存构建输出，`node_modules/` 保存依赖，均由 `.gitignore` 排除；厂家资料保留在 `docs/protocol-reference/` 并纳入版本管理。
 - `npm test` 自动先构建 Sidecar，保证全新克隆可直接运行 IPC 测试；`.github/workflows/ci.yml` 在 Windows/Linux 检查类型、测试和构建，不操作电机。

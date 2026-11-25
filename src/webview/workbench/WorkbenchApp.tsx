@@ -894,6 +894,7 @@ export const WorkbenchApp: React.FC = () => {
                   timeFb={exciteData?.record.vel ?? []}
                   timeUUnit={drv?.outUnit ?? 'Nm'}
                   timeFbUnit="rad/s"
+                  running={Boolean(state?.running && state?.runKind === 'excite')}
                   resetZoomToken={resetZoomToken}
                   equalizeToken={equalizeToken}
                 />
@@ -907,7 +908,7 @@ export const WorkbenchApp: React.FC = () => {
                   sampleVersion={sampleVersion}
                   running={Boolean(state?.running && state?.runKind === 'loop')}
                   positionOffset={state?.posMt ?? 0}
-                  loopKind={state?.runLoopTarget || loopPreviewCfg?.loop || 'vel'}
+                  loopKind={state?.running && state?.runKind === 'loop' ? state.runLoopTarget || 'vel' : loopPreviewCfg?.loop || 'vel'}
                   outUnit={drv?.outUnit ?? 'Nm'}
                   resetZoomToken={resetZoomToken}
                   equalizeToken={equalizeToken}

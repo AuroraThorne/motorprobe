@@ -1,6 +1,7 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import uPlot from 'uplot';
 import { BodeData, ModelFit, PredictedClosedLoop } from '../../shared/protocol';
+import { formatFrequencyTick, plotValues } from './plotValues';
 import {
   attachPlotInteractions,
   ChartRowSplitter,
@@ -18,6 +19,7 @@ interface BodePlotProps {
   timeFb: number[];
   timeUUnit: string;
   timeFbUnit: string;
+  running?: boolean;
   resetZoomToken?: number;
   equalizeToken?: number;
 }
@@ -48,6 +50,7 @@ export const BodePlot: React.FC<BodePlotProps> = ({
   timeFb,
   timeUUnit,
   timeFbUnit,
+  running = false,
   resetZoomToken = 0,
   equalizeToken = 0,
 }) => {
@@ -63,6 +66,7 @@ export const BodePlot: React.FC<BodePlotProps> = ({
     useRef<HTMLDivElement | null>(null),
   ];
   const resetFnsRef = useRef<Array<() => void>>([]);
+  const plotsRef = useRef<uPlot[]>([]);
 
   useEffect(() => {
     if (equalizeToken > 0) resetWeights();
@@ -73,6 +77,53 @@ export const BodePlot: React.FC<BodePlotProps> = ({
       for (const fn of resetFnsRef.current) fn();
     }
   }, [resetZoomToken]);
+
+  const data = useMemo<uPlot.AlignedData[]>(() => {
+    const toDb = (x: number) => 20 * Math.log10(Math.max(x, 1e-12));
+
+    let magData: uPlot.AlignedData = [[], [], [], [], []];
+    let phData: uPlot.AlignedData = [[], [], [], [], []];
+    if (bode && bode.f.length > 0) {
+      const f = bode.f;
+      const mvDb = plotValues(bode.magV.map(toDb));
+      const mpDb = plotValues(bode.magP.map(toDb));
+      let modVDb: Array<number | null> = f.map(() => null);
+      let modPDb: Array<number | null> = f.map(() => null);
+      let modPhV: Array<number | null> = f.map(() => null);
+      let modPhP: Array<number | null> = f.map(() => null);
+      if (model) {
+        modVDb = f.map((hz) => {
+          const w = 2 * Math.PI * hz;
+          return toDb(1.0 / Math.hypot(model.J * w, model.b));
+        });
+        modPDb = f.map((hz) => {
+          const w = 2 * Math.PI * hz;
+          return toDb(1.0 / (w * Math.hypot(model.J * w, model.b)));
+        });
+        modPhV = f.map((hz) => {
+          const w = 2 * Math.PI * hz;
+          return (-(Math.atan2(model.J * w, model.b) + w * model.Td) * 180) / Math.PI;
+        });
+        modPhP = modPhV.map((pv) => (pv !== null ? pv - 90 : null));
+      }
+      magData = [f, mvDb, mpDb, modVDb, modPDb];
+      phData = [f, plotValues(bode.phV), plotValues(bode.phP), modPhV, modPhP];
+    }
+
+    const clData: uPlot.AlignedData = predicted
+      ? [
+          predicted.f,
+          predicted.velDb,
+          predicted.posDb,
+          predicted.singlePosDb,
+          predicted.f.map(() => -3.01),
+        ]
+      : [[], [], [], [], []];
+
+    return [magData, phData, [timeT, plotValues(timeU), plotValues(timeFb)], clData];
+  }, [bode, model, predicted, timeT, timeU, timeFb]);
+  const dataRef = useRef(data);
+  dataRef.current = data;
 
   useEffect(() => {
     const style = getComputedStyle(document.body);
@@ -88,14 +139,15 @@ export const BodePlot: React.FC<BodePlotProps> = ({
     const resetAllFns: Array<() => void> = [];
 
     const mountPlot = (
-      el: HTMLDivElement | null,
+      idx: number,
       logX: boolean,
       yLabel: string,
       series: uPlot.Series[],
-      data: uPlot.AlignedData,
       rightAxisLabel?: string,
     ): void => {
+      const el = hostRefs[idx].current;
       if (!el) return;
+      const data = dataRef.current[idx];
       el.innerHTML = '';
       const rect = el.getBoundingClientRect();
       const opts: uPlot.Options = {
@@ -124,10 +176,7 @@ export const BodePlot: React.FC<BodePlotProps> = ({
             gap: 3,
             size: 40,
             values: logX
-              ? (_u, vals) =>
-                  vals.map((v) =>
-                    v >= 1 ? Number(v.toPrecision(3)).toString() : Number(v.toPrecision(2)).toString(),
-                  )
+              ? (_u, vals) => vals.map(formatFrequencyTick)
               : (_u, vals) => vals.map((v) => `${Number(v.toFixed(2))}s`),
             font: '10px Cascadia Mono, Consolas, monospace',
           },
@@ -165,25 +214,18 @@ export const BodePlot: React.FC<BodePlotProps> = ({
       created.push(plot);
       if (logX) freqPlots.push(plot);
 
-      const xArr = data[0] as ArrayLike<number>;
-      const initX: [number, number] | null =
-        xArr && xArr.length > 1
-          ? [Number(xArr[0]), Number(xArr[xArr.length - 1])]
-          : null;
-      const initY = autoBounds(
-        (rightAxisLabel ? data.slice(2, 3) : data.slice(1)) as Array<ArrayLike<number | null | undefined>>,
-      );
-      const initY2 = rightAxisLabel
-        ? autoBounds([data[1] as ArrayLike<number | null | undefined>])
-        : null;
-
       const resetThisY = () => {
+        const initY = autoBounds(
+          (rightAxisLabel ? plot.data.slice(2, 3) : plot.data.slice(1)) as Array<ArrayLike<number | null | undefined>>,
+        );
+        const initY2 = rightAxisLabel ? autoBounds([plot.data[1]]) : null;
         if (initY) plot.setScale('y', { min: initY[0], max: initY[1] });
         if (initY2) plot.setScale('y2', { min: initY2[0], max: initY2[1] });
       };
       const resetThisPlot = () => {
-        if (initX && initX[1] > initX[0]) {
-          plot.setScale('x', { min: initX[0], max: initX[1] });
+        const x = plot.data[0];
+        if (x.length > 1 && x[x.length - 1] > x[0]) {
+          plot.setScale('x', { min: x[0], max: x[x.length - 1] });
         }
         resetThisY();
       };
@@ -229,39 +271,9 @@ export const BodePlot: React.FC<BodePlotProps> = ({
       observers.push(ro);
     };
 
-    const toDb = (x: number) => 20 * Math.log10(Math.max(x, 1e-12));
-
-    let magData: uPlot.AlignedData = [[], [], [], [], []];
-    let phData: uPlot.AlignedData = [[], [], [], [], []];
-    if (bode && bode.f.length > 0) {
-      const f = bode.f;
-      const mvDb = bode.magV.map(toDb);
-      const mpDb = bode.magP.map(toDb);
-      let modVDb: Array<number | null> = f.map(() => null);
-      let modPDb: Array<number | null> = f.map(() => null);
-      let modPhV: Array<number | null> = f.map(() => null);
-      let modPhP: Array<number | null> = f.map(() => null);
-      if (model) {
-        modVDb = f.map((hz) => {
-          const w = 2 * Math.PI * hz;
-          return toDb(1.0 / Math.hypot(model.J * w, model.b));
-        });
-        modPDb = f.map((hz) => {
-          const w = 2 * Math.PI * hz;
-          return toDb(1.0 / (w * Math.hypot(model.J * w, model.b)));
-        });
-        modPhV = f.map((hz) => {
-          const w = 2 * Math.PI * hz;
-          return (-(Math.atan2(model.J * w, model.b) + w * model.Td) * 180) / Math.PI;
-        });
-        modPhP = modPhV.map((pv) => (pv !== null ? pv - 90 : null));
-      }
-      magData = [f, mvDb, mpDb, modVDb, modPDb];
-      phData = [f, bode.phV, bode.phP, modPhV, modPhP];
-    }
 
     mountPlot(
-      hostRefs[0].current,
+      0,
       true,
       '幅值 (dB)',
       [
@@ -271,11 +283,10 @@ export const BodePlot: React.FC<BodePlotProps> = ({
         { label: '拟合(速度)', stroke: '#90a4ae', width: 1.5, dash: [5, 4] },
         { label: '拟合(位置)', stroke: '#78909c', width: 1.5, dash: [2, 3] },
       ],
-      magData,
     );
 
     mountPlot(
-      hostRefs[1].current,
+      1,
       true,
       '相位 (°)',
       [
@@ -285,11 +296,10 @@ export const BodePlot: React.FC<BodePlotProps> = ({
         { label: '拟合(速度)', stroke: '#90a4ae', width: 1.5, dash: [5, 4] },
         { label: '拟合(位置)', stroke: '#78909c', width: 1.5, dash: [2, 3] },
       ],
-      phData,
     );
 
     mountPlot(
-      hostRefs[2].current,
+      2,
       false,
       `反馈 (${timeFbUnit})`,
       [
@@ -297,22 +307,12 @@ export const BodePlot: React.FC<BodePlotProps> = ({
         { label: `激励 (${timeUUnit})`, scale: 'y2', stroke: '#ef5350', width: 1.6 },
         { label: `反馈 (${timeFbUnit})`, scale: 'y', stroke: '#42a5f5', width: 1.6 },
       ],
-      [timeT, timeU, timeFb],
       `激励 (${timeUUnit})`,
     );
 
-    const clData: uPlot.AlignedData = predicted
-      ? [
-          predicted.f,
-          predicted.velDb,
-          predicted.posDb,
-          predicted.singlePosDb,
-          predicted.f.map(() => -3.01),
-        ]
-      : [[], [], [], [], []];
 
     mountPlot(
-      hostRefs[3].current,
+      3,
       true,
       '闭环预测增益 (dB)',
       [
@@ -322,17 +322,22 @@ export const BodePlot: React.FC<BodePlotProps> = ({
         { label: '单环位置闭环', stroke: '#26a69a', width: 1.8 },
         { label: '-3 dB', stroke: '#888888', width: 1.2, dash: [4, 4] },
       ],
-      clData,
     );
 
+    plotsRef.current = created;
     resetFnsRef.current = resetAllFns;
     return () => {
+      plotsRef.current = [];
       resetFnsRef.current = [];
       for (const fn of cleanups) fn();
       for (const ro of observers) ro.disconnect();
       for (const p of created) p.destroy();
     };
-  }, [bode, model, predicted, timeT, timeU, timeFb, timeUUnit, timeFbUnit]);
+  }, [timeUUnit, timeFbUnit]);
+
+  useEffect(() => {
+    plotsRef.current.forEach((plot, idx) => plot.setData(data[idx]));
+  }, [data]);
 
   return (
     <div ref={containerRef} className="chart-stack">
@@ -354,14 +359,14 @@ export const BodePlot: React.FC<BodePlotProps> = ({
             }}
           >
             <div ref={hostRefs[idx]} className="uplot-canvas-host" />
-            {idx < 2 && (!bode || bode.f.length < 2) && (
-              <div className="chart-empty-overlay">{bode ? '频点不足以绘制波特曲线' : '本次激励未得到足够频响点，请延长激励或调整频率范围'}</div>
+            {idx < 2 && (!bode || bode.f.length === 0) && (
+              <div className="chart-empty-overlay">{running ? '正在采集频响点，幅频 / 相频曲线随测试更新…' : '暂无有效频响点；请运行步进正弦、扫频或 PRBS 测试'}</div>
             )}
             {idx === 2 && timeT.length === 0 && (
-              <div className="chart-empty-overlay">完成响应测试后显示激励与反馈</div>
+              <div className="chart-empty-overlay">测试开始后实时显示激励与反馈</div>
             )}
             {idx === 3 && !predicted && (
-              <div className="chart-empty-overlay">完成模型辨识后显示闭环带宽预测</div>
+              <div className="chart-empty-overlay">{running ? '测试结束并完成拟合后显示闭环预测' : '完成模型辨识后显示闭环带宽预测'}</div>
             )}
           </div>
         </React.Fragment>

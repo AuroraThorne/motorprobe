@@ -111,7 +111,6 @@ export class Engine {
     singlePosBwHz: null as number | null,
     startRatio: 0.5,
   };
-  private lastFittedModel: ModelFit | null = null;
   private lastExciteRun: ExciteRun | null = null;
 
   private running = false;
@@ -443,7 +442,9 @@ export class Engine {
             singlePosBwHz: cmd.singlePosBwHz,
             startRatio: cmd.startRatio,
           };
-          if (this.lastExciteRun) {
+          if (this.runObj instanceof ExciteRun) {
+            this.emitExciteAnalysis(this.runObj, false);
+          } else if (this.lastExciteRun) {
             this.emitExciteAnalysis(this.lastExciteRun, true);
           }
           break;
@@ -688,6 +689,7 @@ export class Engine {
     run.start(nowSec(), this.safety.pos, this.lastFb ? this.lastFb.vel : 0.0);
     this.runObj = run;
     this.nextLiveSysid = nowSec() + 0.35;
+    if (run instanceof ExciteRun) this.emitExciteAnalysis(run, false);
     this.notice('info', 'run', `开始：${run.title}`);
     this.emitState(nowSec());
   }
@@ -722,13 +724,12 @@ export class Engine {
     let bode = null;
     let model: ModelFit | null = null;
     if (run.cfg.kind === 'step') {
-      model = sysid.stepModel(run.snapshotRecord(), unit);
+      if (done) model = sysid.stepModel(run.snapshotRecord(), unit);
     } else {
       bode = sysid.bodeFromRun(run);
-      if (bode) model = sysid.fitModel(bode, unit);
+      if (done && bode) model = sysid.fitModel(bode, unit);
     }
-    if (model) this.lastFittedModel = model;
-    const activeModel = model ?? this.lastFittedModel;
+    const activeModel = model;
     const suggestion = activeModel
       ? sysid.suggest(activeModel, {
           latency: measLat,

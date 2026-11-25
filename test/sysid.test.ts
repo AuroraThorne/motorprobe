@@ -85,6 +85,21 @@ function simulate<T extends BaseRun>(
 }
 
 describe('System Identification & Closed-Loop PID Auto-Tuning', () => {
+  it('publishes the first measured stepped-sine point before the remaining frequencies run', () => {
+    const run = new ExciteRun(baseExciteCfg({ f0: 1, f1: 10, nFreq: 3, cycles: 5 }));
+    run.start(0, 0, 0);
+    for (let t = 0; t < 2.5; t += 0.002) {
+      const u = run.output(t)!;
+      run.record(t, u, { vel: 3 * u, out: u }, -3 * run.cfg.amp * Math.cos(2 * Math.PI * t) / (2 * Math.PI));
+    }
+    expect(run.done).toBe(false);
+    const bode = sysid.bodeFromRun(run);
+    expect(bode?.f).toEqual([1]);
+    expect(bode?.magV[0]).toBeCloseTo(3, 4);
+    expect(bode?.phV[0]).toBeCloseTo(0, 4);
+    expect(sysid.fitModel(bode!)).toBeNull();
+  });
+
   it('recovers J, b, Td from stepped-sine Bode fit', () => {
     const run = simulate(new ExciteRun(baseExciteCfg({ kind: 'stepsine', amp: 0.5, f0: 1, f1: 20, nFreq: 8 })));
     const bode = sysid.bodeFromRun(run);
