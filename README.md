@@ -4,7 +4,7 @@
 
 ## 安装与开始使用
 
-[下载 Windows x64 安装包](https://github.com/AuroraThorne/motorprobe/raw/refs/heads/main/motorprobe-win32-x64-0.1.0.vsix)。仓库根目录也包含 `motorprobe-win32-x64-0.1.0.vsix`，克隆或下载项目后可直接安装。
+[下载 Windows x64 安装包](https://github.com/AuroraThorne/motorprobe/raw/refs/heads/main/motorprobe-win32-x64-0.1.1.vsix)。仓库根目录也包含 `motorprobe-win32-x64-0.1.1.vsix`，克隆或下载项目后可直接安装。
 
 在 VS Code 命令面板执行“扩展：从 VSIX 安装”，选择文件并按提示重新加载窗口。Linux 使用对应平台构建的安装包。
 
