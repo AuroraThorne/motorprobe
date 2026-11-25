@@ -1,0 +1,203 @@
+{
+  "name": "motorprobe",
+  "displayName": "MotorProbe - CAN Motor Debug & SysID",
+  "description": "CAN motor debugging, torque/current control, system identification, and closed-loop testing for DM/HM, RoboMaster, and GD motors.",
+  "version": "0.1.0",
+  "publisher": "Aurora",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AuroraThorne/motorprobe.git"
+  },
+  "homepage": "https://github.com/AuroraThorne/motorprobe#readme",
+  "bugs": {
+    "url": "https://github.com/AuroraThorne/motorprobe/issues"
+  },
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "extensionKind": [
+    "ui",
+    "workspace"
+  ],
+  "categories": [
+    "Debuggers",
+    "Other"
+  ],
+  "keywords": [
+    "CAN",
+    "PCAN",
+    "SLCAN",
+    "SocketCAN",
+    "RoboMaster",
+    "Damiao",
+    "MIT",
+    "PID",
+    "Bode",
+    "Motor"
+  ],
+  "icon": "media/icon.png",
+  "main": "./dist/extension.js",
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false,
+      "description": "MotorProbe accesses local CAN hardware interfaces (PCAN, SLCAN, SocketCAN), requiring workspace trust."
+    }
+  },
+  "activationEvents": [
+    "onView:motorprobe.mainView",
+    "onView:motorprobe.frameMonitor",
+    "onCommand:motorprobe.openWorkbench",
+    "onCommand:motorprobe.openDemoWorkbench",
+    "onWebviewPanel:motorprobe.workbench"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "motorprobe-sidebar",
+          "title": "MotorProbe",
+          "icon": "media/activity-icon.svg"
+        }
+      ],
+      "panel": [
+        {
+          "id": "motorprobe-bus-panel",
+          "title": "CAN 报文监控",
+          "icon": "media/activity-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "motorprobe-sidebar": [
+        {
+          "type": "webview",
+          "id": "motorprobe.mainView",
+          "name": "Control & Watch"
+        }
+      ],
+      "motorprobe-bus-panel": [
+        {
+          "type": "webview",
+          "id": "motorprobe.frameMonitor",
+          "name": "CAN 报文与延迟"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "motorprobe.openWorkbench",
+        "title": "MotorProbe: 打开波形与测试工作台",
+        "icon": "$(graph-line)"
+      },
+      {
+        "command": "motorprobe.openDemoWorkbench",
+        "title": "MotorProbe: 连接演示台并打开工作台"
+      },
+      {
+        "command": "motorprobe.estop",
+        "title": "MotorProbe: 急停（零扭矩）",
+        "icon": "$(stop-circle)"
+      },
+      {
+        "command": "motorprobe.resetSafety",
+        "title": "MotorProbe: 解除急停/超限锁存"
+      },
+      {
+        "command": "motorprobe.showBusMonitor",
+        "title": "MotorProbe: 打开底部 CAN 报文监控"
+      },
+      {
+        "command": "motorprobe.clearBusLog",
+        "title": "MotorProbe: 清空 CAN 报文日志",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "motorprobe.insertPidConfig",
+        "title": "MotorProbe: 插入 RMPP::Pid::Config 代码片段"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "motorprobe.openWorkbench",
+          "group": "navigation@1",
+          "when": "view == motorprobe.mainView"
+        },
+        {
+          "command": "motorprobe.clearBusLog",
+          "group": "navigation@1",
+          "when": "view == motorprobe.frameMonitor"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "motorprobe.estop",
+        "key": "alt+escape",
+        "when": "motorprobe.connected"
+      },
+      {
+        "command": "motorprobe.estop",
+        "key": "ctrl+shift+space",
+        "when": "motorprobe.connected"
+      },
+      {
+        "command": "motorprobe.estop",
+        "key": "escape",
+        "when": "motorprobe.active && !editorTextFocus && !terminalFocus && !inQuickOpen && !suggestWidgetVisible"
+      }
+    ],
+    "configuration": {
+      "title": "MotorProbe",
+      "properties": {
+        "motorprobe.defaultRateHz": {
+          "type": "number",
+          "default": 1000,
+          "minimum": 10,
+          "maximum": 1000,
+          "description": "默认周期控制/查询发送频率 (Hz)。 / Default periodic control/query frequency (Hz)."
+        },
+        "motorprobe.language": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "zh",
+            "en"
+          ],
+          "default": "auto",
+          "description": "界面语言（auto 跟随 VS Code 语言）。 / UI language (auto follows VS Code display language)."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "check": "tsc --noEmit",
+    "build:backend": "node esbuild.mjs",
+    "build:webview": "vite build",
+    "build": "npm run build:backend && npm run build:webview",
+    "pretest": "npm run build:backend",
+    "test": "vitest run",
+    "package:win32-x64": "node scripts/package-vsix.mjs win32-x64",
+    "package:linux-x64": "node scripts/package-vsix.mjs linux-x64",
+    "vscode:prepublish": "npm run build"
+  },
+  "dependencies": {
+    "koffi": "^2.9.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@types/vscode": "^1.85.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "@vscode/vsce": "^3.2.1",
+    "esbuild": "^0.24.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "typescript": "^5.6.3",
+    "uplot": "^1.6.31",
+    "vite": "^5.4.10",
+    "vitest": "^2.1.4"
+  }
+}

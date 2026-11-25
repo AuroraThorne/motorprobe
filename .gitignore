@@ -1,0 +1,32 @@
+# Dependencies and generated output
+node_modules/
+/dist/
+/artifacts/
+/coverage/
+/test-results/
+/.vscode-test/
+/.cache/
+*.vsix
+*.tsbuildinfo
+
+# Local measurements and diagnostics
+*.log
+*.csv
+*.tsv
+/logs/
+
+# Local credentials and editor state
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.npmrc
+/.vscode/settings.json
+/.vscode/*.local.json
+/.idea/
+
+# OS metadata
+.DS_Store
+Thumbs.db
+Desktop.ini
