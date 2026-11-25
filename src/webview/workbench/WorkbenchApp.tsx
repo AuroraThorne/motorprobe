@@ -891,9 +891,10 @@ export const WorkbenchApp: React.FC = () => {
                   predicted={exciteData?.predicted ?? null}
                   timeT={exciteData?.record.t ?? []}
                   timeU={exciteData?.record.u ?? []}
-                  timeFb={exciteData?.record.vel ?? []}
+                  timeFb={exciteData?.record.fbOut ?? []}
+                  timeVelocity={exciteData?.record.vel ?? []}
                   timeUUnit={drv?.outUnit ?? 'Nm'}
-                  timeFbUnit="rad/s"
+                  outputName={drv?.outName ?? '扭矩'}
                   running={Boolean(state?.running && state?.runKind === 'excite')}
                   resetZoomToken={resetZoomToken}
                   equalizeToken={equalizeToken}

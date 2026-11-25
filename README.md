@@ -4,7 +4,7 @@
 
 ## 安装与开始使用
 
-[下载 Windows x64 安装包](https://github.com/AuroraThorne/motorprobe/raw/refs/heads/main/motorprobe-win32-x64-0.1.1.vsix)。仓库根目录也包含 `motorprobe-win32-x64-0.1.1.vsix`，克隆或下载项目后可直接安装。
+[下载 Windows x64 安装包](https://github.com/AuroraThorne/motorprobe/raw/refs/heads/main/motorprobe-win32-x64-0.1.3.vsix)。仓库根目录也包含 `motorprobe-win32-x64-0.1.3.vsix`，克隆或下载项目后可直接安装。
 
 在 VS Code 命令面板执行“扩展：从 VSIX 安装”，选择文件并按提示重新加载窗口。Linux 使用对应平台构建的安装包。
 
@@ -33,6 +33,8 @@
   - **编辑区波形工作台**：`uPlot` 20 万点 4 通道同步示波、支持**停靠 ↔ 图表上方自由拖拽缩放悬浮窗**的参数数值面板、底部双滑块全局时间轴、频响辨识波特图、上位机串级 PID 闭环与 46 项寄存器表；
   - **底部面板 CAN 报文监控**：对标嵌入式 RTT 终端，提供虚拟滚动/ID 聚合报文流、总线负载率估算、往返延迟直方图与原始帧周期发送器。
 - **电控代码深度联动**：频响辨识完成后支持一键复制或向当前活动编辑器插入对齐 `RMPP::Pid::Config` 的 C++ 参数代码。
+- **辨识与整定**：时域图默认对比同单位的激励和反馈电流/扭矩，也可切换速度响应；辨识后自动填入建议带宽，修改后实时重算 PID 与闭环预测。
+- **数值滚轮调节**：聚焦数值框后在框内滚轮调节，页面保持原位；移到框外可继续滚动页面。
 
 电机厂家资料和协议整理文档位于 [`docs/protocol-reference/`](docs/protocol-reference/)，适配范围与待验证事项见 [`GD classic CAN notes`](docs/protocol-reference/高擎GD适配说明.md)。仿照的 VS Code 扩展工程结构参考 EmberProbe；电机协议、驱动和安全策略以本项目资料为准。
 

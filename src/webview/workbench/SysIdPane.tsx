@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ExciteConfig, ExciteKind, PidSuggestion } from '../../shared/protocol';
 import { setWorkbenchMode, useClientStore } from '../shared/clientStore';
 import { postEngine, postToHost } from '../shared/vscodeApi';
@@ -130,6 +130,13 @@ export const SysIdInspector: React.FC = () => {
   const bode = exciteAnalysis?.bode ?? null;
   const velCoherence = mean(bode?.coh);
   const posCoherence = mean(bode?.cohP);
+
+  useEffect(() => {
+    if (!sugg) return;
+    // Seed empty fields only; a later calculation must not overwrite the user's target.
+    setVelBwHz((value) => value || displayGain(sugg.velBw));
+    setSinglePosBwHz((value) => value || displayGain(sugg.singlePosBw));
+  }, [sugg]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -301,7 +308,9 @@ export const SysIdInspector: React.FC = () => {
           className="ep-input mono-num"
           min={0.01}
           step="any"
-          placeholder="留空按延迟自动上限"
+          aria-label="期望速度带宽 (Hz)"
+          data-wheel-step={0.1}
+          placeholder="辨识完成后自动填入建议值"
           value={velBwHz}
           onChange={(e) => {
             setVelBwHz(e.target.value);
@@ -314,7 +323,9 @@ export const SysIdInspector: React.FC = () => {
           className="ep-input mono-num"
           min={0.01}
           step="any"
-          placeholder="默认跟随外环带宽"
+          aria-label="单环位置带宽 (Hz)"
+          data-wheel-step={0.1}
+          placeholder="辨识完成后自动填入建议值"
           value={singlePosBwHz}
           onChange={(e) => {
             setSinglePosBwHz(e.target.value);
@@ -337,9 +348,29 @@ export const SysIdInspector: React.FC = () => {
         />
       </div>
 
+      {sugg && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+          <div className="ep-notice">
+            建议带宽已填入；修改带宽、相位裕度或起步比例，会实时重新计算 PID 和闭环预测。
+          </div>
+          <button
+            type="button"
+            className="ep-btn secondary mini"
+            disabled={running}
+            onClick={() => {
+              setVelBwHz('');
+              setSinglePosBwHz('');
+              triggerRecompute(pmDeg, '', '', startRatioPct);
+            }}
+          >
+            恢复建议带宽
+          </button>
+        </div>
+      )}
+
       {!sugg && (
         <div className="ep-notice">
-          完成一次辨识后可设置速度环与单环位置的期望带宽；每次修改都会重新计算增益、级联外环带宽和相位裕度。
+          完成一次辨识后，自动填入速度环与单环位置的建议带宽；可以修改带宽并实时重新计算 PID。
         </div>
       )}
 

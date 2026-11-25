@@ -78,6 +78,9 @@ export const WriteCard: React.FC<WriteCardProps> = ({
           <input
             type="text"
             inputMode="decimal"
+            data-wheel-step={step}
+            data-wheel-min={min}
+            data-wheel-max={max}
             className="write-num-input mono-num"
             disabled={disabled}
             value={text}

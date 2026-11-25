@@ -1041,6 +1041,14 @@ input[type='number']::-webkit-outer-spin-button {
   font-size: 11px;
   pointer-events: none;
 }
+.response-selector {
+  position: absolute;
+  z-index: 3;
+  top: 4px;
+  right: 16px;
+  width: 170px;
+  font-size: 11px;
+}
 
 /* Horizontal Draggable Row Splitter between Stacked Waveform Channels */
 body.cmk-resizing-rows,

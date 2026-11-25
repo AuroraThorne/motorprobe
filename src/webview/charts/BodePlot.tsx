@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import uPlot from 'uplot';
 import { BodeData, ModelFit, PredictedClosedLoop } from '../../shared/protocol';
 import { formatFrequencyTick, plotValues } from './plotValues';
@@ -17,8 +17,9 @@ interface BodePlotProps {
   timeT: number[];
   timeU: number[];
   timeFb: number[];
+  timeVelocity: number[];
   timeUUnit: string;
-  timeFbUnit: string;
+  outputName: string;
   running?: boolean;
   resetZoomToken?: number;
   equalizeToken?: number;
@@ -48,12 +49,15 @@ export const BodePlot: React.FC<BodePlotProps> = ({
   timeT,
   timeU,
   timeFb,
+  timeVelocity,
   timeUUnit,
-  timeFbUnit,
+  outputName,
   running = false,
   resetZoomToken = 0,
   equalizeToken = 0,
 }) => {
+  const [response, setResponse] = useState<'output' | 'velocity'>('output');
+  const showVelocity = response === 'velocity';
   const { weights, draggingIdx, containerRef, startRowResize, resetWeights } = useRowWeights(
     'bodeRowWeights',
     4,
@@ -120,8 +124,8 @@ export const BodePlot: React.FC<BodePlotProps> = ({
         ]
       : [[], [], [], [], []];
 
-    return [magData, phData, [timeT, plotValues(timeU), plotValues(timeFb)], clData];
-  }, [bode, model, predicted, timeT, timeU, timeFb]);
+    return [magData, phData, [timeT, plotValues(timeU), plotValues(showVelocity ? timeVelocity : timeFb)], clData];
+  }, [bode, model, predicted, timeT, timeU, timeFb, timeVelocity, showVelocity]);
   const dataRef = useRef(data);
   dataRef.current = data;
 
@@ -301,13 +305,13 @@ export const BodePlot: React.FC<BodePlotProps> = ({
     mountPlot(
       2,
       false,
-      `反馈 (${timeFbUnit})`,
+      showVelocity ? '反馈速度 (rad/s)' : `激励 / 反馈${outputName} (${timeUUnit})`,
       [
         { label: 's' },
-        { label: `激励 (${timeUUnit})`, scale: 'y2', stroke: '#ef5350', width: 1.6 },
-        { label: `反馈 (${timeFbUnit})`, scale: 'y', stroke: '#42a5f5', width: 1.6 },
+        { label: `激励${outputName} (${timeUUnit})`, scale: showVelocity ? 'y2' : 'y', stroke: '#ef5350', width: 1.6 },
+        { label: showVelocity ? '反馈速度 (rad/s)' : `反馈${outputName} (${timeUUnit})`, scale: 'y', stroke: '#42a5f5', width: 1.6 },
       ],
-      `激励 (${timeUUnit})`,
+      showVelocity ? `激励${outputName} (${timeUUnit})` : undefined,
     );
 
 
@@ -333,7 +337,7 @@ export const BodePlot: React.FC<BodePlotProps> = ({
       for (const ro of observers) ro.disconnect();
       for (const p of created) p.destroy();
     };
-  }, [timeUUnit, timeFbUnit]);
+  }, [timeUUnit, outputName, showVelocity]);
 
   useEffect(() => {
     plotsRef.current.forEach((plot, idx) => plot.setData(data[idx]));
@@ -359,6 +363,17 @@ export const BodePlot: React.FC<BodePlotProps> = ({
             }}
           >
             <div ref={hostRefs[idx]} className="uplot-canvas-host" />
+            {idx === 2 && (
+              <select
+                aria-label="时域反馈类型"
+                className="ep-select response-selector"
+                value={response}
+                onChange={(event) => setResponse(event.target.value as 'output' | 'velocity')}
+              >
+                <option value="output">{outputName}跟随 ({timeUUnit})</option>
+                <option value="velocity">速度响应 (rad/s)</option>
+              </select>
+            )}
             {idx < 2 && (!bode || bode.f.length === 0) && (
               <div className="chart-empty-overlay">{running ? '正在采集频响点，幅频 / 相频曲线随测试更新…' : '暂无有效频响点；请运行步进正弦、扫频或 PRBS 测试'}</div>
             )}

@@ -2,7 +2,7 @@
   "name": "motorprobe",
   "displayName": "MotorProbe - CAN Motor Debug & SysID",
   "description": "CAN motor debugging, torque/current control, system identification, and closed-loop testing for DM/HM, RoboMaster, and GD motors.",
-  "version": "0.1.1",
+  "version": "0.1.3",
   "publisher": "Aurora",
   "repository": {
     "type": "git",
